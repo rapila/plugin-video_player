@@ -1,0 +1,168 @@
+Widget.types['video_player_frontend_config'] = {
+
+	prepare: function() {
+		var _this = this;
+
+		this.content = Widget.parseHTML("{{includeTemplate=edit}}");
+		this._element.append(this.content);
+		this._element.find('div.hide_if_not_saved').hide();
+
+		Widget.callStatic('detail', 'create_for_instance', this);
+		this.detail_options_element = this._element.find('div.link_options');
+
+		// display options
+		var options_groups = this.getDisplayModes();
+		var options_set = this.getConfigData() || {};
+
+		// display_mode
+		this.mode_select = this.content.find("select[name='display_mode']");
+		this.mode_select.populate({ '': "{{writeString=wns.choose}}"});
+		this.mode_select.populate(options_groups.display_modes, options_set.display_mode || '');
+		this.mode_select.change(function() {
+			_this.reload_preview();
+		});
+
+		// link_id
+		this.link_select = this.content.find("select[name='link_id']");
+		this.populate_link_select(options_set.link_category_id || '', options_set.link_id || '');
+		this.link_select.change(function() {
+			_this.reload_preview();
+		});
+
+		// sort_field
+		this.sort_select = this.content.find("select[name='sort_field']");
+		this.sort_select.populate(options_groups.sort_fields, options_set.sort_field || 'name');
+		this.sort_select.change(function() {
+			_this.reload_preview();
+		});
+
+		// link_category_id
+		this.category_select = this.content.find("select[name='link_category_id']");
+		this.category_select.populate({ '': "{{writeString=video_player.link_option_default}}"});
+		this.category_select.populate(options_groups.video_link_categories, options_set.link_category_id || '');
+		this.category_select.change(function() {
+			_this.link_select.val('');
+			if(_this.populate_link_select(jQuery(this).val(), _this.link_select.val())) {
+				_this.reload_preview();
+			}
+		});
+
+		// domains
+		this.domain_select = this.content.find("select[name='domains']");
+		this.domain_select.populate({ '': "{{writeString=video_player.domains_default}}"});
+		this.domain_select.populate(options_groups.domains, options_set.domains || '');
+		this.domain_select.change(function() {
+			_this.domain_select();
+		});
+
+		if(options_set.UpdatedInfo) {
+			this.content.find('div.hide_if_not_saved').hide();
+			this.content.find(".updated_info").text(data.UpdatedInfo);
+			this.content.find(".created_info").text(data.CreatedInfo);
+		}
+
+		this.result_list = this._element.find('ol.ui-editable-items-list');
+		this.add_new_item = jQuery('<a/>').addClass('add-new-item').attr('title', "{{writeString=wns.link.create}}");
+
+		this.preview = this._element.find('div.preview');
+		this.reload_preview();
+
+		var detail_widget;
+		Widget.create('link_detail', function(widget) {
+			_this.detail_widget = widget;
+			widget.save_callback = _this.reload_preview.bind(_this);
+		});
+
+		this.result_list.delegate('li', 'click', function() {
+			var id = jQuery(this).data('id');
+			_this.detail_widget.setLinkId(id);
+			_this.detail_widget.fill_data();
+			_this.detail_widget.open();
+		});
+	},
+
+	populate_link_select: function(link_category_id, link_id) {
+		var _this = this;
+		var link_options = _this.getLinkOptions(link_category_id);
+		_this.link_select.empty();
+		_this.link_select.populate({ '': "{{writeString=video_player.link_option_default}}"});
+		_this.link_select.populate(link_options, link_id || '');
+		return true;
+	},
+
+	reload_preview: function() {
+		var _this = this;
+		this.result_list.hide();
+		this.detail_options_element.hide();
+		var video_id='';
+		if(this.category_select.val() != '') {
+			this.detail_options_element.show();
+			this.result_list.show();
+			if(_this.link_select.val() == '') {
+				video_id = _this.link_select.val();
+			}
+		}
+
+		this.result_list.empty();
+		// always show related links if display_mode is not detail and link_id or link_category_id is set
+		if((this.mode_select.val() !== 'player' || this.mode_select.val() !== '') && this.category_select.val() === '') {
+			return;
+		}
+		this.relatedLinks(this.category_select.val(), this.sort_select.val(), function(links) {
+			var count = Object.keys(links).length;
+			_this.result_list.append(jQuery('<label/>').text('Gefundene Videolinks ('+count+')'));
+			var i;
+			for(i=0; i<count; i++) {
+				if(video_id == '' && i ===0) {
+					video_id=links[i].Id;
+				}
+				_this.result_list.append(jQuery('<li/>').text(links[i].Name).attr('title', "{{writeString=wns.edit_entry}}").addClass('preview_edit').data('id', links[i].Id));
+			}
+			_this.add_new_item.click(function(event) {
+				Widget.create('link_detail', function(widget) {
+					if(_this.category_select.val() != null) {
+						widget.settings.initial_category_id = _this.category_select.val();
+						widget._element.find("select[name='link_category_id']").prop('disabled', 'disabled');
+					}
+					widget.open();
+					widget.handle('saved', function() {
+						_this.reload_preview();
+					});
+				});
+			});
+			_this.result_list.append(_this.add_new_item);
+			data = this._element.serializeArrayKV();
+			if(video_id != '') {
+				data['link_id'] = video_id;
+			}
+			this.renderPreview(data, function(result) {
+				this.preview.empty().append(Widget.parseHTML(result));
+			});
+		});
+
+		// render embeded video depending on given video_id or automatic
+
+	},
+
+	save: function() {
+		return this._element.serializeArrayKV();
+	},
+
+	additional_buttons: [
+		{
+			text: '{{writeString=links.do_admin}}',
+			icon: 'wrench',
+			action: function(event) {
+				var category_id = this.category_select.val() || '';
+				if(category_id) {
+					category_id = '#link_category_id=' + category_id;
+				}
+				jQuery.openLink("{{writeLink=links;manager=AdminManager}}" + category_id, event);
+			}
+		}
+	],
+
+	settings: {
+		preferred_width: 750
+	}
+};
