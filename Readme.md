@@ -1,6 +1,6 @@
 # Video_Player-Plugin
 
-This Video_Player-Plugin is a video player that works seamlessly with the external link management of [Raplia](https://github.com/rapila/cms-base)
+This Video Player-Plugin is a video player that works seamlessly with the external link management of [Raplia](https://github.com/rapila/cms-base)
 
 ## Goals
 
