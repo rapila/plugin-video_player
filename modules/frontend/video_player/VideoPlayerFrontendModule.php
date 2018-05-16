@@ -1,12 +1,20 @@
 <?php
 class VideoPlayerFrontendModule extends FrontendModule {
 
-	public static $ACCEPTED_DOMAINS = array('youtube.com', 'vimeo.com');
+	
 	public static $DISPLAY_MODES = array('player', 'play_list', 'player_with_play_list', 'video_list');
-
+	
+	public $aAcceptedProviders = array();
+	
 	public $aOptions;
+	
 	const MODE_SELECT_KEY = 'display_mode';
+	
 	const PLAYER_ID_PREFIX = 'player_id_';
+
+	public static function acceptedProviders() {
+		return Settings::getSetting('video_player', 'domains', array());;
+	}
 	
 	public function cachedFrontend($bIsPreview = false) {
 		ResourceIncluder::defaultIncluder()->addResource('video_player.js');
@@ -14,6 +22,7 @@ class VideoPlayerFrontendModule extends FrontendModule {
 	}
 
 	public function renderFrontend() {
+		$this->aPlayerProviders = Settings::getSetting('video_player', 'domains', array());
 		$this->aOptions = $this->widgetData();
 		if(!isset($this->aOptions[self::MODE_SELECT_KEY])) {
 			return null;
@@ -57,7 +66,7 @@ class VideoPlayerFrontendModule extends FrontendModule {
 		$oPlayListTemplate->replaceIdentifier('player_id',  self::PLAYER_ID_PREFIX.$iLinkId);
 		$oItemPrototype = $this->constructTemplate('play_list_item');
 		$aLinks = self::getLinksQuery($iLinkCateogoryId, $sSortField)->find();
-		$iActivLinkId = $oLink->getId() || null;
+		$iActivLinkId = $oLink ? $oLink->getId() : null;
 		$i=1;
 		foreach($aLinks as $i => $oLink) {
 			if($iActivLinkId === null && $i === 1) {
@@ -70,7 +79,7 @@ class VideoPlayerFrontendModule extends FrontendModule {
 			$sDomain = self::domainFromUrl($oLink->getUrl());
 			$oItemTemplate->replaceIdentifier('domain', $sDomain);
 			$oItemTemplate->replaceIdentifier('embed_code', self::embedCodeFromUrl($oLink->getUrl(), $sDomain));
-			$oItemTemplate->replaceIdentifier('is_in_player', $iActivLinkId == $oLink->getId());
+			$oItemTemplate->replaceIdentifier('is_in_player', $iActivLinkId === $oLink->getId());
 			$oItemTemplate->replaceIdentifier('time', self::timeFromUrl($oLink->getUrl(), $sDomain));
 			$oItemTemplate->replaceIdentifier('video_id', self::videoIdFromUrl($oLink->getUrl(), $sDomain));
 
@@ -119,18 +128,32 @@ class VideoPlayerFrontendModule extends FrontendModule {
 
 	public static function getLinksQuery($iLinkCategoryId, $sSortByAsc='sort') {
 		$oQuery = LinkQuery::create()->filterByLinkCategoryId($iLinkCategoryId);
+		self::filterbyAcceptedProviders($oQuery);
 		$sSortBy = StringUtil::camelize("order_by_$sSortByAsc");
 		$oQuery->$sSortBy('asc');
 		return $oQuery;
 	}
 
+	public static function filterbyAcceptedProviders($oQuery) {
+		foreach(VideoPlayerFrontendModule::acceptedProviders() as $i => $sDomain) {
+			if($i === 0) {
+				$oQuery->filterByUrl("%$sDomain%", Criteria::LIKE);
+			} else {
+				$oQuery->_or()->filterByUrl("%$sDomain%", Criteria::LIKE);
+			}
+		}
+	}
+
 	// extract domain from url
 	public static function domainFromUrl($sUrl) {
 		$aResult = parse_url($sUrl);
-		if(isset($aResult['host'])) {
-			return $aResult['host'];
-		}
-		return null;
+		return $aResult['host'];
+		// $aNames = explode(".", $aResult['host']);
+		// // add 'dummy' subdomain if not exists for easy processing
+		// if(count($aNames) < 3) {
+		// 	array_unshift($aNames, "www");
+		// }
+		// return $aNames[count($aNames)-2] . "." . $aNames[count($aNames)-1];
 	}
 
 	// extract video id from url
@@ -170,9 +193,9 @@ class VideoPlayerFrontendModule extends FrontendModule {
 	}
 
 	// always make an embed link (youtube, others need to be implemented)
-	public static function ensureEmbedLink($sUrl, $sDomain = 'youtube.com') {
+	public static function ensureEmbedLink($sUrl, $sDomain = null) {
 		$sEmbedIdentifier = '';
-		if($sDomain === 'youtube.com') {
+		if($sDomain === 'www.youtube.com') {
 			$sEmbedIdentifier='embed';
 		} else if($sDomain === 'vimeo.com') {
 			$sEmbedIdentifier='video';

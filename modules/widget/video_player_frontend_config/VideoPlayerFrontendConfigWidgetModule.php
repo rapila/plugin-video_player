@@ -10,13 +10,7 @@ class VideoPlayerFrontendConfigWidgetModule extends FrontendConfigWidgetModule {
 			$aResult['display_modes'][$sDisplayMode] = TranslationPeer::getString('video_player.display_option.'.$sDisplayMode, null, StringUtil::makeReadableName($sDisplayMode));
 		}
 
-		// Accepted domains
-		$aResult['domains'] = array();
-		foreach(VideoPlayerFrontendModule::$ACCEPTED_DOMAINS as $sDomain) {
-			$aResult['domains'][$sDomain] = $sDomain;
-		}
-
-		// Accepted domains
+		// Sort fields
 		$aResult['sort_fields'] = array();
 		foreach(array('name', 'sort') as $sName) {
 			$aResult['sort_fields'][$sName] = ucfirst($sName);
@@ -33,7 +27,7 @@ class VideoPlayerFrontendConfigWidgetModule extends FrontendConfigWidgetModule {
 
 	public function getLinkOptions($sLinkCategoryId=null) {
 		$oQuery = LinkQuery::create();
-		self::urlFilterAcceptedDomainsQuery($oQuery);
+		VideoPlayerFrontendModule::filterbyAcceptedProviders($oQuery);
 		$oQuery->orderByName()->select(array('Id', 'Name'));
 		if($sLinkCategoryId != null) {
 			$oQuery->filterByLinkCategoryId($sLinkCategoryId);
@@ -44,16 +38,6 @@ class VideoPlayerFrontendConfigWidgetModule extends FrontendConfigWidgetModule {
 			$aResult[$aLink['Id']] = $aLink['Name'];
 		}
 		return $aResult;
-	}
-
-	private static function urlFilterAcceptedDomainsQuery($oQuery) {
-		foreach(VideoPlayerFrontendModule::$ACCEPTED_DOMAINS as $i => $sDomain) {
-			if($i === 0) {
-				$oQuery->filterByUrl("%$sDomain%", Criteria::LIKE);
-			} else {
-				$oQuery->_or()->filterByUrl("%$sDomain%", Criteria::LIKE);
-			}
-		}
 	}
 
 	public function relatedLinks($iLinkCategoryId, $sSortBy = 'sort') {
