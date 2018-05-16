@@ -1,5 +1,5 @@
 video_player:
-  # any kind of config?
-  
-    
+  domains:
+    - 'youtube.com'
+    - 'vimeo.com'
 
