@@ -9,7 +9,7 @@ The Video_Player-Plugin was designed with the following goals in mind:
 * Easy creating of local player on website that playes various video resources
   - such as youtube, vimeo video
   – displaying lists of mixed sources, such as "load video", "seekTo (go to time)", stop and play etd.
-* Inspired by the website made for the music band [Prankgonewrong.ch](www.Prankgonewrong.ch).
+* Inspired by the website made for the music band [Prankgonewrong.ch](https://www.Prankgonewrong.ch).
 
 ## Diving in
 
