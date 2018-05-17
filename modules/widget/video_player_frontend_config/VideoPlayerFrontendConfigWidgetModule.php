@@ -25,19 +25,10 @@ class VideoPlayerFrontendConfigWidgetModule extends FrontendConfigWidgetModule {
 		return $aResult;
 	}
 
-	public function getLinkOptions($sLinkCategoryId=null) {
-		$oQuery = LinkQuery::create();
-		VideoPlayerFrontendModule::filterbyAcceptedProviders($oQuery);
-		$oQuery->orderByName()->select(array('Id', 'Name'));
-		if($sLinkCategoryId != null) {
-			$oQuery->filterByLinkCategoryId($sLinkCategoryId);
-		}
-		$aVideoLinks = $oQuery->find()->toArray();
-		$aResult = array();
-		foreach($aVideoLinks as $aLink) {
-			$aResult[$aLink['Id']] = $aLink['Name'];
-		}
-		return $aResult;
+	public function getLinkOptions($sLinkCategoryId, $sSortField) {
+		$oQuery = VideoPlayerFrontendModule::getLinksQuery($sLinkCategoryId, $sSortField);
+		$oQuery->select(array('Id', 'Name'));
+		return $oQuery->find()->toKeyValue('Id', 'Name');
 	}
 
 	public function relatedLinks($iLinkCategoryId, $sSortBy = 'sort') {

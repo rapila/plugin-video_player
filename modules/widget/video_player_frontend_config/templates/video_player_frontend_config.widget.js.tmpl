@@ -24,7 +24,7 @@ Widget.types['video_player_frontend_config'] = {
 
 		// link_id
 		this.link_select = this.content.find("select[name='link_id']");
-		this.populate_link_select(options_set.link_category_id || '', options_set.link_id || '');
+		this.populate_link_select(options_set.link_category_id || '', options_set.link_id || '', options_set.sort_field || '');
 		this.link_select.change(function() {
 			_this.reload_preview();
 		});
@@ -42,7 +42,7 @@ Widget.types['video_player_frontend_config'] = {
 		this.category_select.populate(options_groups.video_link_categories, options_set.link_category_id || '');
 		this.category_select.change(function() {
 			_this.link_select.val('');
-			if(_this.populate_link_select(jQuery(this).val(), _this.link_select.val())) {
+			if(_this.populate_link_select(jQuery(this).val(), _this.link_select.val(), _this.sort_select.val())) {
 				_this.reload_preview();
 			}
 		});
@@ -81,9 +81,9 @@ Widget.types['video_player_frontend_config'] = {
 		});
 	},
 
-	populate_link_select: function(link_category_id, link_id) {
+	populate_link_select: function(link_category_id, link_id, sort_field) {
 		var _this = this;
-		var link_options = _this.getLinkOptions(link_category_id);
+		var link_options = _this.getLinkOptions(link_category_id, sort_field);
 		_this.link_select.empty();
 		_this.link_select.populate({ '': "{{writeString=video_player.link_option_default}}"});
 		_this.link_select.populate(link_options, link_id || '');
