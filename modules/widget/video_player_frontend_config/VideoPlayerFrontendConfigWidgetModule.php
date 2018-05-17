@@ -28,7 +28,7 @@ class VideoPlayerFrontendConfigWidgetModule extends FrontendConfigWidgetModule {
 	public function getLinkOptions($sLinkCategoryId, $sSortField) {
 		$oQuery = VideoPlayerFrontendModule::getLinksQuery($sLinkCategoryId, $sSortField);
 		$oQuery->select(array('Id', 'Name'));
-		return $oQuery->find()->toKeyValue('Id', 'Name');
+		return WidgetJsonFileModule::jsonOrderedObject($oQuery->find()->toKeyValue('Id', 'Name'));
 	}
 
 	public function relatedLinks($iLinkCategoryId, $sSortBy = 'sort') {
