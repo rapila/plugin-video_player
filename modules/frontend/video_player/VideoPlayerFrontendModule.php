@@ -5,9 +5,7 @@ class VideoPlayerFrontendModule extends FrontendModule {
 	public static $DISPLAY_MODES = array('player', 'play_list', 'player_with_play_list', 'video_list');
 	
 	public $aAcceptedProviders = array();
-	
-	public $aOptions;
-	
+		
 	const MODE_SELECT_KEY = 'display_mode';
 	
 	const PLAYER_ID_PREFIX = 'player_id_';
@@ -23,25 +21,38 @@ class VideoPlayerFrontendModule extends FrontendModule {
 
 	public function renderFrontend() {
 		$this->aPlayerProviders = Settings::getSetting('video_player', 'domains', array());
-		$this->aOptions = $this->widgetData();
-		if(!isset($this->aOptions[self::MODE_SELECT_KEY])) {
+		$aOptions = $this->widgetData();
+
+		if(!isset($aOptions[self::MODE_SELECT_KEY])) {
 			return null;
 		}
-		switch($this->aOptions[self::MODE_SELECT_KEY]) {
+		switch($aOptions[self::MODE_SELECT_KEY]) {
 			case 'player':
-				return $this->renderPlayer($this->aOptions['link_id']);
+				return $this->renderPlayer($aOptions['link_id'], $aOptions['link_category_id'], $aOptions['sort_field']);
 			case 'player_with_play_list':
-				return $this->renderPlayerWithPlayList($this->aOptions['link_id'], $this->aOptions['link_category_id'], $this->aOptions['sort_field']);
+				return $this->renderPlayerWithPlayList($aOptions['link_id'], $aOptions['link_category_id'], $aOptions['sort_field']);
 			case 'play_list':
-				return $this->renderPlayList($this->aOptions['link_id'], $this->aOptions['link_category_id'], $this->aOptions['sort_field']);
+				return $this->renderPlayList($aOptions['link_id'], $aOptions['link_category_id'], $aOptions['sort_field']);
 			case 'video_list':
-				return $this->renderVideoList($this->aOptions['link_category_id'], $this->aOptions['sort_field']);
+				return $this->renderVideoList($aOptions['link_category_id'], $aOptions['sort_field']);
 		}
 	}
 
-	public function renderPlayer($iLinkId) {
+	private static function getLinkOrFirstInList($iLinkId, $iLinkCategoryId, $sSortField) {
+		// Link when its given
 		$oLink = LinkQuery::create()->findPk($iLinkId);
+		// Get first link, dynamically, better if list and sort by are changed by configuration
 		if($oLink === null) {
+			$oLink = self::getLinksQuery($iLinkCategoryId, $sSortField)->findOne();
+		}
+		if($oLink) {
+			return $oLink;
+		}
+	}
+
+	public function renderPlayer($iLinkId, $iLinkCategoryId, $sSortField) {
+		$oLink = self::getLinkOrFirstInList($iLinkId, $iLinkCategoryId, $sSortField);
+		if(!$oLink) {
 			return;
 		}
 		$oPlayerTemplate = $this->constructTemplate('player');
@@ -59,18 +70,19 @@ class VideoPlayerFrontendModule extends FrontendModule {
 	}
 
 	// playlist is normally used together with a player already filled
-	public function renderPlaylist($iLinkId, $iLinkCateogoryId, $sSortField) {
-		$oLink = LinkQuery::create()->findPk($iLinkId);
+	public function renderPlaylist($iLinkId, $iLinkCategoryId, $sSortField) {
+		$oLink = self::getLinkOrFirstInList($iLinkId, $iLinkCategoryId, $sSortField);
 
 		$oPlayListTemplate = $this->constructTemplate('play_list');
-		$oPlayListTemplate->replaceIdentifier('player_id',  self::PLAYER_ID_PREFIX.$iLinkId);
 		$oItemPrototype = $this->constructTemplate('play_list_item');
-		$aLinks = self::getLinksQuery($iLinkCateogoryId, $sSortField)->find();
+		$aLinks = self::getLinksQuery($iLinkCategoryId, $sSortField)->find();
 		$iActivLinkId = $oLink ? $oLink->getId() : null;
-		$i=1;
 		foreach($aLinks as $i => $oLink) {
-			if($iActivLinkId === null && $i === 1) {
+			if($iActivLinkId === null && $i === 0) {
 				$iActivLinkId = $oLink->getId();
+			}
+			if($i === 0) {
+				$oPlayListTemplate->replaceIdentifier('player_id',  self::PLAYER_ID_PREFIX.$iActivLinkId);
 			}
 			$oItemTemplate = clone $oItemPrototype;
 			$sUrlWithoutScheme = preg_replace('#^https?://#', '', rtrim($oLink->getUrl(),'/'));
@@ -90,9 +102,9 @@ class VideoPlayerFrontendModule extends FrontendModule {
 	}
 
 	public function renderPlayerWithPlayList($iLinkId, $iLinkCategoryId, $sSortByAsc) {
-		$oLink = LinkQuery::create()->findPk($iLinkId);
-		if($oLink === null) {
-			return null;
+		$oLink = self::getLinkOrFirstInList($iLinkId, $iLinkCategoryId, $sSortField);
+		if(!$oLink) {
+			return;
 		}
 		$oPlayerWithListTemplate = $this->constructTemplate('player_with_play_list');
 		$this->renderPlayerContent($oLink, $oPlayerWithListTemplate);
