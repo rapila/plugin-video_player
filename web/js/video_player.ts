@@ -1,6 +1,8 @@
 interface Domain {
 	switchVideo(iframe : HTMLIFrameElement, id : string, timecode : string) : void;
 	seekTo(iframe : HTMLIFrameElement, timecode : string) : void;
+	play(iframe : HTMLIFrameElement) : void;
+	pause(iframe : HTMLIFrameElement) : void;
 }
 
 const YouTubeDomain : Domain = {
@@ -23,6 +25,12 @@ const YouTubeDomain : Domain = {
 			func: 'seekTo',
 			args: [parseInt(timecode, 10)]
 		}), '*');
+	},
+	play(iframe) {
+
+	},
+	pause(iframe) {
+
 	}
 };
 
@@ -44,6 +52,12 @@ const VimeoDomain : Domain = {
 			method: 'setCurrentTime',
 			value: parseInt(timecode, 10)
 		}, iframe.src);
+	},
+	play(iframe) {
+
+	},
+	pause(iframe) {
+
 	}
 };
 
@@ -128,7 +142,6 @@ class Player {
 			throw new Error('Video ID missing in element');
 		}
 		return element.dataset.videoId;
-
 	}
 }
 
