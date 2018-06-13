@@ -33,7 +33,9 @@ Widget.types['video_player_frontend_config'] = {
 		this.sort_select = this.content.find("select[name='sort_field']");
 		this.sort_select.populate(options_groups.sort_fields, options_set.sort_field || 'name');
 		this.sort_select.change(function() {
-			_this.reload_preview();
+			if(_this.populate_link_select(_this.category_select.val(), _this.link_select.val(), jQuery(this).val())) {
+				_this.reload_preview();
+			}
 		});
 
 		// link_category_id
