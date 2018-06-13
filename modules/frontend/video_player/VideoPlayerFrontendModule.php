@@ -138,10 +138,13 @@ class VideoPlayerFrontendModule extends FrontendModule {
 		return $oListTemplate;
 	}
 
-	public static function getLinksQuery($iLinkCategoryId, $sSortByAsc='sort') {
+	public static function getLinksQuery($iLinkCategoryId, $sSortField='sort') {
 		$oQuery = LinkQuery::create()->filterByLinkCategoryId($iLinkCategoryId);
 		self::filterbyAcceptedProviders($oQuery);
-		$sSortBy = StringUtil::camelize("order_by_$sSortByAsc");
+		if($sSortField == null) {
+			$sSortField = 'sort';
+		}
+		$sSortBy = StringUtil::camelize("order_by_$sSortField");
 		$oQuery->$sSortBy('asc');
 		return $oQuery;
 	}
