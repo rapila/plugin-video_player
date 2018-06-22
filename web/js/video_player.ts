@@ -1,8 +1,7 @@
 interface Domain {
 	switchVideo(iframe : HTMLIFrameElement, id : string, timecode : string) : void;
 	seekTo(iframe : HTMLIFrameElement, timecode : string) : void;
-	play(iframe : HTMLIFrameElement) : void;
-	pause(iframe : HTMLIFrameElement) : void;
+	togglePlay(iframe : HTMLIFrameElement) : void;
 }
 
 const YouTubeDomain : Domain = {
@@ -26,10 +25,7 @@ const YouTubeDomain : Domain = {
 			args: [parseInt(timecode, 10)]
 		}), '*');
 	},
-	play(iframe) {
-
-	},
-	pause(iframe) {
+	togglePlay(iframe) {
 
 	}
 };
@@ -53,10 +49,7 @@ const VimeoDomain : Domain = {
 			value: parseInt(timecode, 10)
 		}, iframe.src);
 	},
-	play(iframe) {
-
-	},
-	pause(iframe) {
+	togglePlay(iframe) {
 
 	}
 };
@@ -71,6 +64,8 @@ class Controller {
 	} = {};
 
 	private playlists : PlayList[] = [];
+
+	private videolists : VideoList[] = [];
 
 	constructor() {
 		this.domains['www.youtube.com'] = YouTubeDomain;
@@ -93,6 +88,11 @@ class Controller {
 				continue;
 			}
 			this.playlists.push(new PlayList(playlist, player));
+		}
+
+		const videolistElements = Array.prototype.slice.call(document.querySelectorAll('.video_list'));
+		for(const videolist of videolistElements) {
+			this.videolists.push(new VideoList(videolist));
 		}
 	}
 
@@ -137,6 +137,10 @@ class Player {
 		this.currentDomain.seekTo(this.element, time);
 	}
 
+	public togglePlay(link : HTMLAnchorElement) {
+		this.currentDomain.togglePlay(this.element);
+	}
+
 	private videoIdFor(element : HTMLAnchorElement | HTMLIFrameElement) {
 		if(!element.dataset.videoId) {
 			throw new Error('Video ID missing in element');
@@ -154,6 +158,22 @@ class PlayList {
 			link.addEventListener('click', event => {
 				event.preventDefault();
 				this.player.switchTo(link);
+			});
+		}
+	}
+}
+
+class VideoList {
+	private iframes : HTMLVideoElement[];
+
+	constructor(private element : HTMLElement) {
+		this.iframes = Array.prototype.slice.call(element.querySelectorAll('iframe'));
+		for(const iframe of this.iframes) {
+			const player = this.iframes[iframe.dataset.playerId];
+
+			iframe.addEventListener('click', event => {
+				event.preventDefault();
+				player.togglePlay(iframe);
 			});
 		}
 	}

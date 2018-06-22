@@ -91,7 +91,7 @@ class VideoPlayerFrontendModule extends FrontendModule {
 			$sDomain = self::domainFromUrl($oLink->getUrl());
 			$oItemTemplate->replaceIdentifier('domain', $sDomain);
 			$oItemTemplate->replaceIdentifier('embed_code', self::embedCodeFromUrl($oLink->getUrl(), $sDomain));
-			$oItemTemplate->replaceIdentifier('is_in_player', $iActivLinkId === $oLink->getId());
+			$oItemTemplate->replaceIdentifier('is_active', $iActivLinkId === $oLink->getId());
 			$oItemTemplate->replaceIdentifier('time', self::timeFromUrl($oLink->getUrl(), $sDomain));
 			$oItemTemplate->replaceIdentifier('video_id', self::videoIdFromUrl($oLink->getUrl(), $sDomain));
 
@@ -114,7 +114,7 @@ class VideoPlayerFrontendModule extends FrontendModule {
 
 	public function renderVideoList($iLinkCategoryId, $sSortField) {
 		$oLinks = self::getLinksQuery($iLinkCategoryId, $sSortField)->find();
-		$oListTemplate = $this->constructTemplate('list');
+		$oListTemplate = $this->constructTemplate('video_list');
 		if(count($oLinks) === 0) {
 			if($oListTemplate->hasIdentifier('no_result_message')) {
 				$oListTemplate->replaceIdentifier('no_result_message', 'Uups, kein Video gefunden!');
@@ -122,17 +122,15 @@ class VideoPlayerFrontendModule extends FrontendModule {
 			}
 			return null;
 		}
-		$oItemPrototype = $this->constructTemplate('list_item');
+		$oItemPrototype = $this->constructTemplate('video_list_item');
 		foreach($oLinks as $i => $oLink) {
 			$oItemTemplate = clone $oItemPrototype;
 
 			$sDomain = self::domainFromUrl($oLink->getUrl());
 			$sEmbedCode = self::embedCodeFromUrl($oLink->getUrl(), $sDomain);
 			$oItemTemplate->replaceIdentifier('src', $sEmbedCode);
-			$oItemTemplate->replaceIdentifier('embed_code', $sEmbedCode);
-			$oItemTemplate->replaceIdentifier('domain', $sDomain);
-			$oItemTemplate->replaceIdentifier('video_id', self::videoIdFromUrl($oLink->getUrl(), $sDomain));
-
+			$oItemTemplate->replaceIdentifier('player_id', self::PLAYER_ID_PREFIX.$oLink->getId());
+			$oItemTemplate->replaceIdentifier('action', 'togglePlay');
 			$oListTemplate->replaceIdentifierMultiple('items', $oItemTemplate);
 		}
 		return $oListTemplate;

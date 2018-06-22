@@ -104,6 +104,9 @@ Widget.types['video_player_frontend_config'] = {
 				video_id = _this.link_select.val();
 			}
 		}
+		if(this.mode_select.val()  === 'video_list') {
+			this.detail_options_element.hide();
+		}
 
 		this.result_list.empty();
 		// always show related links if display_mode is not detail and link_id or link_category_id is set
