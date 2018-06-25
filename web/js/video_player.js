@@ -1,4 +1,5 @@
 "use strict";
+// Generate with `tsc`, watch with `tsc -w`
 var YouTubeDomain = {
     switchVideo: function (iframe, id, timecode) {
         if (!iframe.contentWindow) {

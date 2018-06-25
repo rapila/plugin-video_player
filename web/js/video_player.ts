@@ -1,3 +1,5 @@
+// Generate with `tsc`, watch with `tsc -w`
+
 interface Domain {
 	switchVideo(iframe : HTMLIFrameElement, id : string, timecode : string) : void;
 	seekTo(iframe : HTMLIFrameElement, timecode : string) : void;
