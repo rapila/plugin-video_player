@@ -81,7 +81,7 @@ class Controller {
 				console.error(new Error(`Player with id ${playlist.dataset.playerId} was not found`));
 				continue;
 			}
-			this.playlists.push(new PlayList(playlist, player));
+			this.playlists.push(new PlayList(playlist, player, this));
 		}
 	}
 
@@ -94,6 +94,13 @@ class Controller {
 			throw new Error(`Don’t know how to handle domain ${element.dataset.domain}`);
 		}
 		return this.domains[domain];
+	}
+
+	public switchVideo(link : HTMLAnchorElement, player : Player, source : PlayList) {
+		player.switchTo(link);
+		for(const playlist of this.playlists) {
+			playlist.updateHighlight(playlist === source ? link : undefined);
+		}
 	}
 }
 
@@ -138,13 +145,25 @@ class Player {
 class PlayList {
 	private links : HTMLAnchorElement[];
 
-	constructor(private element : HTMLElement, private player : Player) {
+	constructor(private element : HTMLElement, private player : Player, private contoller : Controller) {
 		this.links = Array.prototype.slice.call(element.querySelectorAll('a'));
 		for(const link of this.links) {
 			link.addEventListener('click', event => {
 				event.preventDefault();
-				this.player.switchTo(link);
+				this.contoller.switchVideo(link, this.player, this);
 			});
+		}
+	}
+
+	public updateHighlight(link? : HTMLAnchorElement) {
+		this.links
+			.filter(ln => link !== ln)
+			.forEach(ln => {
+				ln.classList.remove('is_active');
+			});
+
+		if(link) {
+			link.classList.add('is_active');
 		}
 	}
 }

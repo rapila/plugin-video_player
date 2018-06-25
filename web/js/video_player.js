@@ -67,7 +67,7 @@ var Controller = /** @class */ (function () {
                 console.error(new Error("Player with id " + playlist.dataset.playerId + " was not found"));
                 continue;
             }
-            this.playlists.push(new PlayList(playlist, player));
+            this.playlists.push(new PlayList(playlist, player, this));
         }
     };
     Controller.prototype.domainFor = function (element) {
@@ -79,6 +79,13 @@ var Controller = /** @class */ (function () {
             throw new Error("Don\u2019t know how to handle domain " + element.dataset.domain);
         }
         return this.domains[domain];
+    };
+    Controller.prototype.switchVideo = function (link, player, source) {
+        player.switchTo(link);
+        for (var _i = 0, _a = this.playlists; _i < _a.length; _i++) {
+            var playlist = _a[_i];
+            playlist.updateHighlight(playlist === source ? link : undefined);
+        }
     };
     return Controller;
 }());
@@ -115,15 +122,16 @@ var Player = /** @class */ (function () {
     return Player;
 }());
 var PlayList = /** @class */ (function () {
-    function PlayList(element, player) {
+    function PlayList(element, player, contoller) {
         var _this = this;
         this.element = element;
         this.player = player;
+        this.contoller = contoller;
         this.links = Array.prototype.slice.call(element.querySelectorAll('a'));
         var _loop_1 = function (link) {
             link.addEventListener('click', function (event) {
                 event.preventDefault();
-                _this.player.switchTo(link);
+                _this.contoller.switchVideo(link, _this.player, _this);
             });
         };
         for (var _i = 0, _a = this.links; _i < _a.length; _i++) {
@@ -131,6 +139,16 @@ var PlayList = /** @class */ (function () {
             _loop_1(link);
         }
     }
+    PlayList.prototype.updateHighlight = function (link) {
+        this.links
+            .filter(function (ln) { return link !== ln; })
+            .forEach(function (ln) {
+            ln.classList.remove('is_active');
+        });
+        if (link) {
+            link.classList.add('is_active');
+        }
+    };
     return PlayList;
 }());
 window.addEventListener('load', function () {
