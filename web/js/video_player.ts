@@ -52,7 +52,11 @@ const VimeoDomain : Domain = {
 class Controller {
 	private domains : {
 		[domain : string] : Domain
-	} = {};
+	} = {
+		'www.youtube.com': YouTubeDomain,
+		'www.youtube-nocookie.com': YouTubeDomain,
+		'vimeo.com': VimeoDomain,
+	};
 
 	private players : {
 		[playerId : string] : Player
@@ -61,9 +65,6 @@ class Controller {
 	private playlists : PlayList[] = [];
 
 	constructor() {
-		this.domains['www.youtube.com'] = YouTubeDomain;
-		this.domains['www.youtube-nocookie.com'] = YouTubeDomain;
-		this.domains['vimeo.com'] = VimeoDomain;
 	}
 
 	public init() {
@@ -85,13 +86,14 @@ class Controller {
 	}
 
 	public domainFor(element : HTMLAnchorElement | HTMLIFrameElement) {
-		if(!element.dataset.domain) {
+		const domain = element.dataset.domain;
+		if(!domain) {
 			throw new Error('Domain missing in element');
 		}
-		if(!(element.dataset.domain in this.domains)) {
+		if(!(domain in this.domains)) {
 			throw new Error(`Don’t know how to handle domain ${element.dataset.domain}`);
 		}
-		return this.domains[element.dataset.domain];
+		return this.domains[domain];
 	}
 }
 
@@ -130,7 +132,6 @@ class Player {
 			throw new Error('Video ID missing in element');
 		}
 		return element.dataset.videoId;
-
 	}
 }
 

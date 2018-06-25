@@ -44,12 +44,13 @@ var VimeoDomain = {
 };
 var Controller = /** @class */ (function () {
     function Controller() {
-        this.domains = {};
+        this.domains = {
+            'www.youtube.com': YouTubeDomain,
+            'www.youtube-nocookie.com': YouTubeDomain,
+            'vimeo.com': VimeoDomain,
+        };
         this.players = {};
         this.playlists = [];
-        this.domains['www.youtube.com'] = YouTubeDomain;
-        this.domains['www.youtube-nocookie.com'] = YouTubeDomain;
-        this.domains['vimeo.com'] = VimeoDomain;
     }
     Controller.prototype.init = function () {
         var playerElements = Array.prototype.slice.call(document.querySelectorAll('iframe[data-player-id]'));
@@ -70,13 +71,14 @@ var Controller = /** @class */ (function () {
         }
     };
     Controller.prototype.domainFor = function (element) {
-        if (!element.dataset.domain) {
+        var domain = element.dataset.domain;
+        if (!domain) {
             throw new Error('Domain missing in element');
         }
-        if (!(element.dataset.domain in this.domains)) {
+        if (!(domain in this.domains)) {
             throw new Error("Don\u2019t know how to handle domain " + element.dataset.domain);
         }
-        return this.domains[element.dataset.domain];
+        return this.domains[domain];
     };
     return Controller;
 }());
