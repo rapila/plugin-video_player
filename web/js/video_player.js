@@ -147,6 +147,10 @@ var PlayList = /** @class */ (function () {
         });
         if (link) {
             link.classList.add('is_active');
+            this.element.classList.add('is_active');
+        }
+        else {
+            this.element.classList.remove('is_active');
         }
     };
     return PlayList;
