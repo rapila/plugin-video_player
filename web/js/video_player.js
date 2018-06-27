@@ -1,3 +1,5 @@
+"use strict";
+// Generate with `tsc`, watch with `tsc -w`
 var YouTubeDomain = {
     switchVideo: function (iframe, id, timecode) {
         if (!iframe.contentWindow) {
@@ -18,8 +20,6 @@ var YouTubeDomain = {
             func: 'seekTo',
             args: [parseInt(timecode, 10)]
         }), '*');
-    },
-    togglePlay: function (iframe) {
     }
 };
 var VimeoDomain = {
@@ -40,19 +40,17 @@ var VimeoDomain = {
             method: 'setCurrentTime',
             value: parseInt(timecode, 10)
         }, iframe.src);
-    },
-    togglePlay: function (iframe) {
     }
 };
 var Controller = /** @class */ (function () {
     function Controller() {
-        this.domains = {};
+        this.domains = {
+            'www.youtube.com': YouTubeDomain,
+            'www.youtube-nocookie.com': YouTubeDomain,
+            'vimeo.com': VimeoDomain,
+        };
         this.players = {};
         this.playlists = [];
-        this.videolists = [];
-        this.domains['www.youtube.com'] = YouTubeDomain;
-        this.domains['www.youtube-nocookie.com'] = YouTubeDomain;
-        this.domains['vimeo.com'] = VimeoDomain;
     }
     Controller.prototype.init = function () {
         var playerElements = Array.prototype.slice.call(document.querySelectorAll('iframe[data-player-id]'));
@@ -69,22 +67,25 @@ var Controller = /** @class */ (function () {
                 console.error(new Error("Player with id " + playlist.dataset.playerId + " was not found"));
                 continue;
             }
-            this.playlists.push(new PlayList(playlist, player));
-        }
-        var videolistElements = Array.prototype.slice.call(document.querySelectorAll('.video_list'));
-        for (var _b = 0, videolistElements_1 = videolistElements; _b < videolistElements_1.length; _b++) {
-            var videolist = videolistElements_1[_b];
-            this.videolists.push(new VideoList(videolist));
+            this.playlists.push(new PlayList(playlist, player, this));
         }
     };
     Controller.prototype.domainFor = function (element) {
-        if (!element.dataset.domain) {
+        var domain = element.dataset.domain;
+        if (!domain) {
             throw new Error('Domain missing in element');
         }
-        if (!(element.dataset.domain in this.domains)) {
+        if (!(domain in this.domains)) {
             throw new Error("Don\u2019t know how to handle domain " + element.dataset.domain);
         }
-        return this.domains[element.dataset.domain];
+        return this.domains[domain];
+    };
+    Controller.prototype.switchVideo = function (link, player, source) {
+        player.switchTo(link);
+        for (var _i = 0, _a = this.playlists; _i < _a.length; _i++) {
+            var playlist = _a[_i];
+            playlist.updateHighlight(playlist === source ? link : undefined);
+        }
     };
     return Controller;
 }());
@@ -112,9 +113,6 @@ var Player = /** @class */ (function () {
         }
         this.currentDomain.seekTo(this.element, time);
     };
-    Player.prototype.togglePlay = function (link) {
-        this.currentDomain.togglePlay(this.element);
-    };
     Player.prototype.videoIdFor = function (element) {
         if (!element.dataset.videoId) {
             throw new Error('Video ID missing in element');
@@ -124,15 +122,16 @@ var Player = /** @class */ (function () {
     return Player;
 }());
 var PlayList = /** @class */ (function () {
-    function PlayList(element, player) {
+    function PlayList(element, player, contoller) {
         var _this = this;
         this.element = element;
         this.player = player;
+        this.contoller = contoller;
         this.links = Array.prototype.slice.call(element.querySelectorAll('a'));
         var _loop_1 = function (link) {
             link.addEventListener('click', function (event) {
                 event.preventDefault();
-                _this.player.switchTo(link);
+                _this.contoller.switchVideo(link, _this.player, _this);
             });
         };
         for (var _i = 0, _a = this.links; _i < _a.length; _i++) {
@@ -140,26 +139,21 @@ var PlayList = /** @class */ (function () {
             _loop_1(link);
         }
     }
-    return PlayList;
-}());
-var VideoList = /** @class */ (function () {
-    function VideoList(element) {
-        this.element = element;
-        this.iframes = Array.prototype.slice.call(element.querySelectorAll('iframe'));
-        var _loop_2 = function (iframe) {
-            var player = this_1.iframes[iframe.dataset.playerId];
-            iframe.addEventListener('click', function (event) {
-                event.preventDefault();
-                player.togglePlay(iframe);
-            });
-        };
-        var this_1 = this;
-        for (var _i = 0, _a = this.iframes; _i < _a.length; _i++) {
-            var iframe = _a[_i];
-            _loop_2(iframe);
+    PlayList.prototype.updateHighlight = function (link) {
+        this.links
+            .filter(function (ln) { return link !== ln; })
+            .forEach(function (ln) {
+            ln.classList.remove('is_active');
+        });
+        if (link) {
+            link.classList.add('is_active');
+            this.element.classList.add('is_active');
         }
-    }
-    return VideoList;
+        else {
+            this.element.classList.remove('is_active');
+        }
+    };
+    return PlayList;
 }());
 window.addEventListener('load', function () {
     var controller = new Controller();

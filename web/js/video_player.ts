@@ -1,7 +1,8 @@
+// Generate with `tsc`, watch with `tsc -w`
+
 interface Domain {
 	switchVideo(iframe : HTMLIFrameElement, id : string, timecode : string) : void;
 	seekTo(iframe : HTMLIFrameElement, timecode : string) : void;
-	togglePlay(iframe : HTMLIFrameElement) : void;
 }
 
 const YouTubeDomain : Domain = {
@@ -24,9 +25,6 @@ const YouTubeDomain : Domain = {
 			func: 'seekTo',
 			args: [parseInt(timecode, 10)]
 		}), '*');
-	},
-	togglePlay(iframe) {
-
 	}
 };
 
@@ -48,16 +46,17 @@ const VimeoDomain : Domain = {
 			method: 'setCurrentTime',
 			value: parseInt(timecode, 10)
 		}, iframe.src);
-	},
-	togglePlay(iframe) {
-
 	}
 };
 
 class Controller {
 	private domains : {
 		[domain : string] : Domain
-	} = {};
+	} = {
+		'www.youtube.com': YouTubeDomain,
+		'www.youtube-nocookie.com': YouTubeDomain,
+		'vimeo.com': VimeoDomain,
+	};
 
 	private players : {
 		[playerId : string] : Player
@@ -65,12 +64,7 @@ class Controller {
 
 	private playlists : PlayList[] = [];
 
-	private videolists : VideoList[] = [];
-
 	constructor() {
-		this.domains['www.youtube.com'] = YouTubeDomain;
-		this.domains['www.youtube-nocookie.com'] = YouTubeDomain;
-		this.domains['vimeo.com'] = VimeoDomain;
 	}
 
 	public init() {
@@ -87,23 +81,26 @@ class Controller {
 				console.error(new Error(`Player with id ${playlist.dataset.playerId} was not found`));
 				continue;
 			}
-			this.playlists.push(new PlayList(playlist, player));
-		}
-
-		const videolistElements = Array.prototype.slice.call(document.querySelectorAll('.video_list'));
-		for(const videolist of videolistElements) {
-			this.videolists.push(new VideoList(videolist));
+			this.playlists.push(new PlayList(playlist, player, this));
 		}
 	}
 
 	public domainFor(element : HTMLAnchorElement | HTMLIFrameElement) {
-		if(!element.dataset.domain) {
+		const domain = element.dataset.domain;
+		if(!domain) {
 			throw new Error('Domain missing in element');
 		}
-		if(!(element.dataset.domain in this.domains)) {
+		if(!(domain in this.domains)) {
 			throw new Error(`Don’t know how to handle domain ${element.dataset.domain}`);
 		}
-		return this.domains[element.dataset.domain];
+		return this.domains[domain];
+	}
+
+	public switchVideo(link : HTMLAnchorElement, player : Player, source : PlayList) {
+		player.switchTo(link);
+		for(const playlist of this.playlists) {
+			playlist.updateHighlight(playlist === source ? link : undefined);
+		}
 	}
 }
 
@@ -137,10 +134,6 @@ class Player {
 		this.currentDomain.seekTo(this.element, time);
 	}
 
-	public togglePlay(link : HTMLAnchorElement) {
-		this.currentDomain.togglePlay(this.element);
-	}
-
 	private videoIdFor(element : HTMLAnchorElement | HTMLIFrameElement) {
 		if(!element.dataset.videoId) {
 			throw new Error('Video ID missing in element');
@@ -152,29 +145,28 @@ class Player {
 class PlayList {
 	private links : HTMLAnchorElement[];
 
-	constructor(private element : HTMLElement, private player : Player) {
+	constructor(private element : HTMLElement, private player : Player, private contoller : Controller) {
 		this.links = Array.prototype.slice.call(element.querySelectorAll('a'));
 		for(const link of this.links) {
 			link.addEventListener('click', event => {
 				event.preventDefault();
-				this.player.switchTo(link);
+				this.contoller.switchVideo(link, this.player, this);
 			});
 		}
 	}
-}
 
-class VideoList {
-	private iframes : HTMLVideoElement[];
-
-	constructor(private element : HTMLElement) {
-		this.iframes = Array.prototype.slice.call(element.querySelectorAll('iframe'));
-		for(const iframe of this.iframes) {
-			const player = this.iframes[iframe.dataset.playerId];
-
-			iframe.addEventListener('click', event => {
-				event.preventDefault();
-				player.togglePlay(iframe);
+	public updateHighlight(link? : HTMLAnchorElement) {
+		this.links
+			.filter(ln => link !== ln)
+			.forEach(ln => {
+				ln.classList.remove('is_active');
 			});
+
+		if(link) {
+			link.classList.add('is_active');
+			this.element.classList.add('is_active');
+		} else {
+			this.element.classList.remove('is_active');
 		}
 	}
 }
